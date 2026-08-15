@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!-- Spring-managed singletons: constructor-injected dependencies are framework-controlled,
+       not caller-mutable. Suppressing EI_EXPOSE_REP2 false positives. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="com.docsync.config.SecurityConfig"/>
+      <Class name="com.docsync.service.AuthService"/>
+      <Class name="com.docsync.service.JwtService"/>
+      <Class name="com.docsync.service.LoginAttemptService"/>
+      <Class name="com.docsync.service.RefreshTokenCleanupTask"/>
+      <Class name="com.docsync.model.entity.RefreshToken"/>
+    </Or>
+  </Match>
+  <!-- JPA entity: getUser() must return the live User reference for ORM navigation.
+       Defensive copying is not applicable here as JPA requires identity-equality semantics. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+    <Class name="com.docsync.model.entity.RefreshToken"/>
+  </Match>
+</FindBugsFilter>
