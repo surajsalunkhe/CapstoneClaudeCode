@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Pre-push hook: runs the full test suite before any push.
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "=== Pre-push: Unit Tests ==="
+if command -v pytest &>/dev/null && [ -d "tests/unit" ]; then
+  if pytest tests/unit/ -q --tb=short --no-header 2>/dev/null; then
+    echo "  Unit tests: PASS"
+  else
+    echo "  ABORT: Unit tests failed. Fix tests before pushing."
+    exit 1
+  fi
+else
+  echo "  WARNING: pytest or tests/unit not found. Skipping test run."
+fi
+
+echo "=== Pre-push: Type Check ==="
+if command -v mypy &>/dev/null && [ -d "src" ]; then
+  if mypy src/ --quiet 2>/dev/null; then
+    echo "  mypy: PASS"
+  else
+    echo "  ABORT: Type errors found. Fix type errors before pushing."
+    exit 1
+  fi
+else
+  echo "  WARNING: mypy or src/ not found. Skipping type check."
+fi
+
+echo "=== Pre-push: Force-push Protection ==="
+while read local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    if git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      : # normal fast-forward push — allowed
+    else
+      echo "  ABORT: Refusing non-fast-forward push to main. Use a PR instead."
+      exit 1
+    fi
+  fi
+done
+
+echo "=== Pre-push: All checks passed ==="
+exit 0

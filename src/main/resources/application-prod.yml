@@ -1,0 +1,7 @@
+# Production profile — disables Swagger UI and API docs (RC-004)
+# Rollback: remove this file to re-enable Swagger; or set springdoc.api-docs.enabled=true
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

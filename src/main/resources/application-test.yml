@@ -1,0 +1,8 @@
+# Test profile — reduced rate limiter thresholds for unit testing (FINDING-021)
+resilience4j:
+  ratelimiter:
+    instances:
+      authRateLimiter:
+        limit-for-period: 1
+        limit-refresh-period: 10s
+        timeout-duration: 0s

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Pre-commit hook: enforces quality and security gates before every commit.
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "=== Pre-commit: Secret Scanning ==="
+if command -v detect-secrets &>/dev/null; then
+  if detect-secrets scan --all-files 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+results = data.get('results', {})
+if results:
+    print('SECRETS DETECTED in:', list(results.keys()))
+    sys.exit(1)
+"; then
+    echo "  Secret scan: PASS"
+  else
+    echo "  ABORT: Secrets detected. Remove secrets before committing."
+    exit 1
+  fi
+else
+  echo "  WARNING: detect-secrets not installed. Skipping secret scan."
+  echo "  Install with: pip install detect-secrets"
+fi
+
+echo "=== Pre-commit: Linting ==="
+if command -v ruff &>/dev/null; then
+  if ruff check src/ tests/ --quiet 2>/dev/null; then
+    echo "  Ruff: PASS"
+  else
+    echo "  ABORT: Linting errors found. Run 'ruff check src/ tests/' to see details."
+    exit 1
+  fi
+else
+  echo "  WARNING: ruff not installed. Skipping lint check."
+fi
+
+echo "=== Pre-commit: Sensitive File Guard ==="
+STAGED=$(git diff --cached --name-only 2>/dev/null || true)
+FORBIDDEN_PATTERNS=(".env" "credentials.json" "secrets.yaml" "secrets.json" "*.pem" "*.key" "id_rsa")
+for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+  if echo "$STAGED" | grep -q "$pattern" 2>/dev/null; then
+    echo "  ABORT: Attempting to commit a potentially sensitive file matching pattern: $pattern"
+    echo "  Staged files: $STAGED"
+    exit 1
+  fi
+done
+echo "  Sensitive file check: PASS"
+
+echo "=== Pre-commit: All checks passed ==="
+exit 0
