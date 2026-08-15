@@ -1,5 +1,11 @@
+# MCP credentials (never commit)
+.mcp.json
+mcp.json
+
 # Compiled class file
 *.class
+.idea/
+.github/
 
 # Log file
 *.log
